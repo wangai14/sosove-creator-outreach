@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#edf1ee">
+    <title>TikTok Creator Outreach Desk</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/tiktok/static/styles.css?v=20260826-4">
+    <script defer src="/tiktok/static/app.js?v=20260826-4"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#creator-workspace">跳到达人工作区</a>
+    <main class="app-shell">
+      <header class="topbar topbar--tk">
+        <div class="brand-lockup">
+          <div class="brand-mark brand-mark--tk">TK</div>
+          <div><p class="eyebrow">TikTok Creator Outreach</p><h1>SOSOVE TikTok 日本达人建联台</h1></div>
+        </div>
+        <div class="topbar-actions">
+          <a class="icon-button" href="/">Instagram 建联</a>
+          <span class="icon-button icon-button--platform">TikTok 建联</span>
+          <button id="refresh-btn" class="icon-button" type="button">刷新</button>
+          <label class="icon-button">导入 CSV<input id="csv-input" type="file" accept=".csv,.tsv,.txt" hidden></label>
+          <a class="icon-button icon-button--primary" href="/tiktok/api/candidates.csv" download>导出 CSV</a>
+        </div>
+      </header>
+
+      <section id="import-preview-panel" class="panel import-preview-panel" hidden>
+        <div class="panel-head panel-head--split"><div><p class="eyebrow">Import Preview</p><h2>TikTok CSV 导入预览</h2></div><div class="preview-actions"><button id="cancel-import-btn" type="button">取消</button><button id="confirm-import-btn" class="primary-inline" type="button">确认导入</button></div></div>
+        <div id="import-preview-summary" class="preview-summary"></div><div id="import-preview-list" class="preview-list"></div>
+      </section>
+
+      <section class="stat-strip" aria-label="TikTok 建联概览">
+        <article><span>候选</span><strong id="stat-total">0</strong></article><article><span>可建联</span><strong id="stat-ready">0</strong></article><article><span>平均分</span><strong id="stat-score">0</strong></article><article><span>已建联</span><strong id="stat-contacted">0</strong></article><article><span>预计预算</span><strong id="stat-budget">¥0</strong></article>
+      </section>
+
+      <section class="panel queue-panel" aria-label="TikTok 建联队列">
+        <div class="queue-summary"><p class="eyebrow">Outreach Queue</p><h2>人工确认建联队列</h2><small id="queue-caption">当前筛选下暂无候选</small></div>
+        <div class="queue-progress-block"><strong id="queue-current">未开始</strong><div class="queue-progress"><i id="queue-progress-fill"></i></div><label><span>今日目标</span><input id="queue-target-input" type="number" min="1" max="200" value="20"></label></div>
+        <div class="queue-actions"><button id="queue-start-btn" class="primary-inline" type="button">开始队列</button><button id="queue-open-btn" type="button" disabled>打开主页</button><button id="queue-copy-btn" type="button" disabled>复制 DM</button><button id="queue-sent-btn" type="button" disabled>已手动发送，下一位</button><button id="queue-skip-btn" type="button" disabled>跳过</button><button id="queue-stop-btn" type="button" disabled>停止</button></div>
+      </section>
+
+      <section class="task-board" aria-label="TikTok 今日任务">
+        <button class="task-card" type="button" data-workflow="dueToday"><span>今日跟进</span><strong id="task-dueToday">0</strong><small id="task-dueToday-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="overdue"><span>超期未跟</span><strong id="task-overdue">0</strong><small id="task-overdue-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="replied"><span>已回复待处理</span><strong id="task-replied">0</strong><small id="task-replied-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="negotiating"><span>报价待确认</span><strong id="task-negotiating">0</strong><small id="task-negotiating-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="missingMetrics"><span>播放资料待补</span><strong id="task-missingMetrics">0</strong><small id="task-missingMetrics-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="samplePending"><span>待寄样</span><strong id="task-samplePending">0</strong><small id="task-samplePending-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="shipping"><span>运输中</span><strong id="task-shipping">0</strong><small id="task-shipping-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="draftReview"><span>脚本/初稿待审</span><strong id="task-draftReview">0</strong><small id="task-draftReview-list">暂无</small></button>
+        <button class="task-card" type="button" data-workflow="publish"><span>待发布</span><strong id="task-publish">0</strong><small id="task-publish-list">暂无</small></button>
+      </section>
+
+      <section id="creator-workspace" class="workbench" tabindex="-1">
+        <aside class="panel discovery-panel">
+          <div class="panel-head"><div><p class="eyebrow">Discovery</p><h2>搜索入口</h2></div></div>
+          <form id="search-form" class="search-builder"><label><span>关键词</span><input id="keyword-input" value="日本 レディースファッション"></label><label><span>合作信号</span><select id="signal-select"><option value="PR 有償">PR + 有偿</option><option value="商品提供">商品提供</option><option value="TikTok Shop">TikTok Shop</option><option value="着回し コーデ">穿搭内容</option></select></label><button class="full-button" type="submit">打开搜索</button></form>
+          <section id="discovery-public" class="discovery-tool discovery-tool--public is-open">
+            <button class="discovery-toggle" type="button" aria-expanded="true" aria-controls="discovery-public-body"><span><small>Search API</small><strong>公开搜索接入</strong></span><span class="discovery-summary-badge">API</span></button>
+            <div id="discovery-public-body" class="public-search-box discovery-tool-body">
+              <div class="section-head section-head--end"><a id="public-search-open-link" target="_blank" rel="noreferrer">打开搜索</a></div>
+              <label><span>搜索关键词</span><textarea id="public-search-keyword" rows="4">japanese fashion creator&#10;tokyo outfit tiktok&#10;40代 ファッション TikTok</textarea></label>
+              <div class="inline-controls"><label><span>搜索源</span><select id="public-search-engine"><option value="auto">自动</option><option value="google_cse">Google CSE</option><option value="serpapi">SerpApi</option></select></label><label><span>数量</span><input id="public-search-limit" type="number" min="1" max="30" value="10"></label></div>
+              <button id="public-search-btn" class="full-button full-button--accent" type="button">搜索并导入账号</button><small id="public-search-status">公开搜索只负责发现 TikTok 主页，不抓取登录后数据。</small>
+            </div>
+          </section>
+          <section id="discovery-import" class="discovery-tool discovery-tool--import">
+            <button class="discovery-toggle" type="button" aria-expanded="false" aria-controls="discovery-import-body"><span><small>Profile Import</small><strong>TikTok 链接识别器</strong></span><span class="discovery-summary-badge">URL</span></button>
+            <div id="discovery-import-body" class="collector-box discovery-tool-body" hidden><label><span>达人赛道</span><input id="collector-niche" value="日本女装 / Fashion"></label><label><span>主页链接 / @handle</span><textarea id="collector-source" rows="7" placeholder="https://www.tiktok.com/@creator.jp&#10;@tokyo_fashion"></textarea></label><button id="collector-import-btn" class="full-button full-button--accent" type="button">识别并加入候选池</button></div>
+          </section>
+          <section id="discovery-rules" class="discovery-tool discovery-tool--rules">
+            <button class="discovery-toggle" type="button" aria-expanded="false" aria-controls="discovery-rules-body"><span><small>Score Model</small><strong>TikTok 规则权重</strong></span><span class="discovery-summary-badge">100</span></button>
+            <div id="discovery-rules-body" class="discovery-tool-body" hidden><div class="rule-list"><span>播放表现 22</span><span>互动率 20</span><span>播放粉丝比 18</span><span>更新频率 10</span><span>内容匹配 12</span><span>受众匹配 8</span><span>品牌安全 4</span><span>可联系性 6</span></div></div>
+          </section>
+          <section id="discovery-hashtags" class="discovery-tool discovery-tool--hashtags">
+            <button class="discovery-toggle" type="button" aria-expanded="false" aria-controls="discovery-hashtags-body"><span><small>Keyword Lab</small><strong>Hashtag 搜索</strong></span><span id="hashtag-count" class="discovery-summary-badge">0 个</span></button>
+            <div id="discovery-hashtags-body" class="hashtag-autofill tk-hashtag-assistant discovery-tool-body" hidden>
+              <label><span>主题 / 名称</span><input id="hashtag-topic" value="日本女装" placeholder="例如：40代通勤女装"></label>
+              <label><span>搜索关键词</span><textarea id="hashtag-input" rows="4" placeholder="#40代ファッション #通勤コーデ #ootdjapan"></textarea></label>
+              <div class="hashtag-actions"><button id="hashtag-auto-btn" type="button">生成关键词</button><button id="copy-tags-btn" type="button">复制关键词</button><button id="open-tags-btn" type="button">打开前 4 个</button></div>
+              <div id="hashtag-suggestions" class="tag-cloud tag-cloud--compact"></div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="panel candidate-panel">
+          <div class="panel-head panel-head--split"><div><p class="eyebrow">Candidate CRM</p><h2>TikTok 达人候选池</h2></div><div class="panel-head-actions"><button id="clear-filters-btn" type="button">清空筛选</button><button id="delete-all-btn" class="danger-inline" type="button">删除全部</button></div></div>
+          <div class="filters tk-filters"><label><span>搜索</span><input id="filter-search" type="search" placeholder="@handle / 赛道 / 标签"></label><label><span>状态</span><select id="filter-status"></select></label><label><span>等级</span><select id="filter-tier"><option value="">全部</option><option>S</option><option>A</option><option>B</option><option>C</option><option>D</option></select></label><label><span>排序</span><select id="filter-sort"><option value="score_desc">综合评分最高</option><option value="views_desc">平均播放最高</option><option value="median_desc">中位播放最高</option><option value="ratio_desc">播放粉丝比最高</option><option value="engagement_desc">互动率最高</option><option value="followers_desc">粉丝最多</option><option value="updated_desc">最近更新</option></select></label></div>
+          <div id="batch-toolbar" class="batch-toolbar">
+            <div class="batch-selection"><label><input id="batch-select-all" type="checkbox"><span>选择当前筛选</span></label><strong id="batch-count">已选择 0</strong><button id="batch-clear-btn" type="button">清除选择</button></div>
+            <div class="batch-actions">
+              <div class="batch-action"><select id="batch-status"><option value="">批量状态</option></select><button id="batch-status-btn" type="button">应用</button></div>
+              <div class="batch-action"><input id="batch-followup" type="date" title="批量跟进日期"><button id="batch-followup-btn" type="button">设置跟进</button></div>
+              <div class="batch-action batch-action--tags"><input id="batch-tags" placeholder="追加标签"><button id="batch-tags-btn" type="button">添加</button></div>
+              <button id="batch-delete-btn" class="danger-inline" type="button">删除选中</button>
+            </div>
+          </div>
+          <div id="candidate-list" class="candidate-list" aria-live="polite"></div>
+        </section>
+
+        <aside class="panel detail-panel">
+          <div class="panel-head"><div><p class="eyebrow">Outreach Draft</p><h2 id="detail-title">选择一个达人</h2></div></div>
+          <div id="detail-empty" class="empty-state"><strong>候选详情会显示在这里</strong><span>查看 TikTok 表现、建联文案与合作履约。</span></div>
+          <div id="detail-content" class="detail-content" hidden>
+            <div class="creator-summary"><div class="creator-identity"><div class="avatar" id="detail-avatar">TK</div><div><h3 id="detail-name">-</h3><a id="detail-url" target="_blank" rel="noreferrer">TikTok</a></div></div><div class="section-actions"><button id="detail-pin-btn" type="button">置顶</button><button id="delete-candidate-btn" class="danger-inline" type="button">删除</button></div></div>
+            <div class="detail-command-row">
+              <section id="next-action-box" class="next-action-box" data-tone="neutral"><div><span>下一步行动</span><strong id="next-action-title">审核达人资料</strong><small id="next-action-note">根据当前状态生成处理建议</small></div><button id="next-action-btn" type="button">去处理</button></section>
+              <section id="profile-health" class="profile-health" data-level="low"><div class="profile-health-head"><span>资料完整度</span><strong id="profile-health-percent">0%</strong></div><div id="profile-health-track" class="profile-health-track" role="progressbar" aria-label="资料完整度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="profile-health-fill"></i></div><small id="profile-health-missing">等待选择达人</small></section>
+            </div>
+            <div class="detail-tabs" role="tablist" aria-label="达人详情"><button class="is-active" data-detail-tab="profile" type="button" role="tab" aria-selected="true">资料</button><button data-detail-tab="outreach" type="button" role="tab" aria-selected="false">建联</button><button data-detail-tab="partnership" type="button" role="tab" aria-selected="false">合作</button></div>
+            <div class="score-grid tk-score-grid" data-detail-panel="profile"><article><span>评分</span><strong id="detail-score">-</strong></article><article><span>等级</span><strong id="detail-tier">-</strong></article><article><span>平均播放</span><strong id="detail-views">-</strong></article><article><span>中位播放</span><strong id="detail-median">-</strong></article><article><span>播放粉丝比</span><strong id="detail-ratio">-</strong></article><article><span>互动率</span><strong id="detail-er">-</strong></article></div>
+            <div class="score-breakdown" id="score-breakdown" data-detail-panel="profile"></div>
+            <div class="enrichment-box" data-detail-panel="profile"><div class="section-head"><h3>TikTok 资料补全</h3><button id="metrics-save-btn" type="button">保存指标</button></div><div class="metric-edit-grid"><label><span>粉丝数</span><input id="edit-followers" type="number" min="0"></label><label><span>平均播放</span><input id="edit-views" type="number" min="0"></label><label><span>中位播放</span><input id="edit-median" type="number" min="0"></label><label><span>互动率 %</span><input id="edit-er" type="number" min="0" step="0.1"></label><label><span>周更频率</span><input id="edit-frequency" type="number" min="0" step="0.1"></label><label><span>头像链接</span><input id="edit-avatar" type="url"></label></div></div>
+            <div class="saved-works-box" data-detail-panel="profile">
+              <div class="section-head"><h3>作品收藏</h3><span id="saved-work-count" class="saved-work-count">0 个</span></div>
+              <form id="saved-work-form" class="saved-work-form">
+                <label class="wide"><span>作品链接</span><input id="saved-work-url" type="url" required placeholder="https://www.tiktok.com/@creator/video/..."></label>
+                <label><span>收藏标题</span><input id="saved-work-title" maxlength="100" placeholder="例如：春夏穿搭参考"></label>
+                <label><span>收藏备注</span><input id="saved-work-note" maxlength="300" placeholder="记录节奏、镜头或选品亮点"></label>
+                <button id="saved-work-add-btn" class="primary-inline" type="submit">收藏作品</button>
+              </form>
+              <div id="saved-work-list" class="saved-work-list" aria-live="polite"></div>
+            </div>
+            <label class="status-editor" data-detail-panel="profile"><span>状态</span><select id="detail-status"></select></label>
+            <div class="followup-editor" data-detail-panel="profile"><label><span>下次跟进</span><input id="followup-date" type="date"></label><button id="save-followup-btn" type="button">保存</button></div>
+            <div class="contact-log-box" data-detail-panel="outreach" hidden><div class="section-head"><h3>联系历史</h3><button id="quick-log-btn" type="button">记录建联</button></div><textarea id="contact-note" rows="2" placeholder="建联渠道、回复、报价或备注"></textarea><div id="contact-history" class="contact-history"></div></div>
+            <div class="reply-assistant-box" data-detail-panel="outreach" hidden><div class="section-head"><h3>回复处理助手</h3><button id="reply-generate-btn" type="button">生成回复</button></div><textarea id="reply-source" rows="4" placeholder="粘贴达人回复"></textarea><div id="reply-insights" class="copy-insights"></div><pre id="reply-draft" class="reply-draft"></pre><div class="optimizer-actions"><button id="reply-copy-btn" type="button" disabled>复制回复</button><button id="reply-save-btn" class="primary-inline" type="button" disabled>记录并更新状态</button><button id="reply-clear-btn" type="button">清空</button></div></div>
+            <div class="checklist" id="manual-checklist" data-detail-panel="outreach" hidden></div>
+            <div class="draft-tabs" role="tablist" data-detail-panel="outreach" hidden><button class="is-active" data-draft="dm" type="button">DM</button><button data-draft="email" type="button">Email</button><button data-draft="followup" type="button">Follow-up</button></div>
+            <div class="template-library" data-detail-panel="outreach" hidden>
+              <div class="section-head"><h3>TikTok 建联文案</h3><button id="copy-draft-btn" type="button">复制当前</button></div>
+              <div class="optimizer-grid"><label><span>视频形式</span><select id="video-format-select"><option value="short_video">短视频</option><option value="photo_mode">Photo Mode</option><option value="live">TikTok LIVE</option></select></label><label><span>语气</span><select id="copy-tone-select"><option value="warm">亲和自然</option><option value="polite">正式礼貌</option><option value="concise">简短直接</option></select></label><label><span>合作重点</span><select id="copy-angle-select"><option value="paid">有偿投稿</option><option value="product">免费样品</option><option value="spark">Spark Ads</option><option value="affiliate">折扣码/佣金</option></select></label></div>
+              <div class="model-gateway"><div class="section-head"><h3>模型接口</h3><small id="copy-model-status">默认使用 TikTok 本地模板</small></div><div class="model-grid"><label><span>生成方式</span><select id="copy-model-provider"><option value="local">本地模板</option><option value="api">模型 API</option><option value="cpa">CPA 中转</option></select></label><label><span>Base URL</span><input id="copy-model-base-url" type="url" placeholder="https://api.example.com/v1"></label><label><span>Model</span><input id="copy-model-name" placeholder="model-name"></label></div><label><span>API Key</span><input id="copy-model-api-key" type="password" placeholder="sk-..."></label><div class="model-actions"><button id="copy-model-save-btn" type="button">保存配置</button><button id="copy-model-test-btn" type="button">测试接口</button><button id="copy-model-clear-btn" type="button">清空</button></div></div>
+              <div class="optimizer-actions"><button id="copy-local-btn" type="button">本地生成</button><button id="copy-model-btn" class="primary-inline" type="button">模型生成</button></div>
+            </div>
+            <div class="draft-box" data-detail-panel="outreach" hidden><div id="email-subject-row" class="subject-row" hidden><span>Subject</span><strong id="email-subject">-</strong></div><pre id="draft-text"></pre></div>
+            <div class="partnership-box" data-detail-panel="partnership" hidden>
+              <div class="section-head"><h3>合作结果追踪</h3><button id="partnership-save-btn" type="button">保存</button></div>
+              <div class="partnership-grid">
+                <div class="partnership-group-title">建联信息</div><label><span>发送邀约时间</span><input id="partnership-invitation" type="date"></label><label><span>建联时间</span><input id="partnership-connection" type="date"></label><label><span>达人类型</span><input id="partnership-creator-type"></label><label><span>合作阶段</span><select id="partnership-stage"></select></label>
+                <div class="partnership-group-title">合作信息</div><label><span>报价 JPY</span><input id="partnership-quote" type="number" min="0"></label><label><span>合作产品</span><input id="partnership-product"></label><label><span>视频形式</span><select id="partnership-format"><option value="short_video">短视频</option><option value="photo_mode">Photo Mode</option><option value="live">TikTok LIVE</option></select></label><label><span>素材使用天数</span><input id="partnership-usage-days" type="number" min="0"></label>
+                <div class="partnership-group-title">Spark Ads</div><label><span>授权状态</span><select id="partnership-spark-status"><option value="not_requested">未申请</option><option value="requested">已申请</option><option value="approved">已授权</option><option value="expired">已过期</option></select></label><label><span>授权码</span><input id="partnership-spark-code"></label>
+                <div class="partnership-group-title">履约与发货</div><label><span>样品状态</span><select id="partnership-sample-status"><option value="none">未安排</option><option value="requested">已索要地址</option><option value="prepared">备货中</option><option value="sent">已发货</option><option value="delivered">已签收</option></select></label><label><span>样品成本</span><input id="partnership-sample-cost" type="number" min="0"></label><label><span>收货姓名</span><input id="partnership-recipient"></label><label><span>邮编</span><input id="partnership-postal"></label><label class="wide"><span>详细地址</span><input id="partnership-address"></label><label><span>手机号</span><input id="partnership-phone"></label><label><span>订单编号</span><input id="partnership-order"></label><label><span>物流单号</span><input id="partnership-tracking"></label><label><span>发货时间</span><input id="partnership-shipped" type="date"></label><label><span>收货时间</span><input id="partnership-received" type="date"></label>
+                <div class="partnership-group-title">视频进度与结果</div><label><span>视频进度</span><select id="partnership-progress"></select></label><label><span>脚本截止</span><input id="partnership-script-due" type="date"></label><label><span>初稿截止</span><input id="partnership-draft-due" type="date"></label><label><span>发布时间</span><input id="partnership-post-date" type="date"></label><label class="wide"><span>视频链接</span><input id="partnership-post-url" type="url"></label><label><span>粉丝折扣码</span><input id="partnership-coupon"></label><label><span>订单数</span><input id="partnership-orders" type="number" min="0"></label><label><span>收入 JPY</span><input id="partnership-revenue" type="number" min="0"></label>
+              </div><div id="partnership-summary" class="partnership-summary"></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel add-panel"><div class="panel-head"><div><p class="eyebrow">Manual Entry</p><h2>新增 TikTok 候选</h2></div></div><form id="candidate-form" class="candidate-form tk-candidate-form"><div class="candidate-form-section"><div class="form-section-title">基础资料</div><label><span>账号</span><input name="handle" required placeholder="@handle"></label><label><span>名称</span><input name="name"></label><label><span>赛道</span><input name="niche"></label><label><span>地区</span><input name="location" value="Japan"></label></div><div class="candidate-form-section"><div class="form-section-title">TikTok 表现</div><label><span>粉丝数</span><input name="followers" type="number" min="0"></label><label><span>平均播放</span><input name="avgViews" type="number" min="0"></label><label><span>中位播放</span><input name="medianViews" type="number" min="0"></label><label><span>互动率 %</span><input name="engagementRate" type="number" min="0" step="0.1"></label><label><span>周更频率</span><input name="videoFrequency" type="number" min="0" step="0.1"></label></div><div class="candidate-form-section"><div class="form-section-title">联系与内容</div><label><span>邮箱</span><input name="email" type="email"></label><label><span>头像链接</span><input name="avatarUrl" type="url"></label><label><span>标签</span><input name="tags"></label><label class="wide"><span>备注</span><textarea name="notes" rows="3"></textarea></label></div><button class="full-button" type="submit">加入 TikTok 候选池</button></form></section>
+      <footer class="app-footer"><span id="source-caption">TikTok 数据独立存储</span><span>与 Instagram 候选池、筛选和模型配置互不干扰</span></footer>
+    </main>
+    <button id="scroll-top-btn" class="scroll-top-btn" type="button" title="返回顶部">↑</button><div id="toast" class="toast" role="status"></div>
+  </body>
+</html>

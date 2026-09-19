@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f4f6f1">
+    <title>Instagram Creator Outreach Desk</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark">SO</div>
+          <div>
+            <p class="eyebrow">Instagram Creator Outreach</p>
+            <h1>SOSOVE 日本达人建联台</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <a class="icon-button" href="/tiktok/">TikTok 建联</a>
+          <button id="refresh-btn" class="icon-button" type="button" title="刷新本地数据">刷新</button>
+          <label class="icon-button" title="导入候选 CSV">
+            导入 CSV
+            <input id="csv-input" type="file" accept=".csv,.tsv,.txt" hidden>
+          </label>
+          <a class="icon-button icon-button--primary" href="/api/candidates.csv" download>导出 CSV</a>
+        </div>
+      </header>
+
+
+      <section id="import-preview-panel" class="panel import-preview-panel" hidden>
+        <div class="panel-head panel-head--split">
+          <div>
+            <p class="eyebrow">Import Preview</p>
+            <h2 id="import-preview-title">CSV 导入预览</h2>
+          </div>
+          <div class="preview-actions">
+            <button id="cancel-import-btn" type="button">取消</button>
+            <button id="confirm-import-btn" class="primary-inline" type="button">确认导入</button>
+          </div>
+        </div>
+        <div id="import-preview-summary" class="preview-summary"></div>
+        <div id="import-preview-list" class="preview-list"></div>
+      </section>
+
+      <section class="stat-strip" aria-label="建联概览">
+        <article>
+          <span>候选</span>
+          <strong id="stat-total">-</strong>
+        </article>
+        <article>
+          <span>可建联</span>
+          <strong id="stat-ready">-</strong>
+        </article>
+        <article>
+          <span>平均分</span>
+          <strong id="stat-score">-</strong>
+        </article>
+        <article>
+          <span>已触达</span>
+          <strong id="stat-contacted">-</strong>
+        </article>
+        <article>
+          <span>预估预算</span>
+          <strong id="stat-budget">-</strong>
+        </article>
+      </section>
+
+      <section class="panel queue-panel" aria-label="建联队列">
+        <div class="queue-copy">
+          <p class="eyebrow">Outreach Queue</p>
+          <h2>人工确认建联队列</h2>
+          <p id="queue-caption">从当前筛选结果中按评分逐个处理。系统只打开主页和复制文案，发送由你手动确认。</p>
+        </div>
+        <div class="queue-meter">
+          <div class="queue-current" id="queue-current">未开始</div>
+          <div class="queue-progress" aria-hidden="true"><i id="queue-progress-fill"></i></div>
+          <label class="queue-target">
+            <span>今日目标</span>
+            <input id="queue-target-input" type="number" min="1" max="200" value="20">
+          </label>
+        </div>
+        <div class="queue-actions">
+          <button id="queue-start-btn" class="primary-inline" type="button">开始队列</button>
+          <button id="queue-open-btn" type="button" disabled>打开主页</button>
+          <button id="queue-copy-btn" type="button" disabled>复制 DM</button>
+          <button id="queue-sent-next-btn" type="button" disabled>已手动发送，下一个</button>
+          <button id="queue-skip-btn" type="button" disabled>跳过</button>
+          <button id="queue-stop-btn" type="button" disabled>停止</button>
+        </div>
+      </section>
+
+      <section class="task-board" aria-label="今日任务看板">
+        <button class="task-card" type="button" data-workflow="due_today">
+          <span>今日跟进</span>
+          <strong id="task-due-today">-</strong>
+          <small id="task-due-today-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="overdue">
+          <span>超期未跟</span>
+          <strong id="task-overdue">-</strong>
+          <small id="task-overdue-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="replied">
+          <span>已回复待处理</span>
+          <strong id="task-replied">-</strong>
+          <small id="task-replied-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="negotiating">
+          <span>报价待确认</span>
+          <strong id="task-negotiating">-</strong>
+          <small id="task-negotiating-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="needs_data">
+          <span>资料待补全</span>
+          <strong id="task-needs-data">-</strong>
+          <small id="task-needs-data-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="sample_pending">
+          <span>待寄样</span>
+          <strong id="task-sample-pending">-</strong>
+          <small id="task-sample-pending-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="shipping">
+          <span>运输中</span>
+          <strong id="task-shipping">-</strong>
+          <small id="task-shipping-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="shooting">
+          <span>待拍摄</span>
+          <strong id="task-shooting">-</strong>
+          <small id="task-shooting-list">-</small>
+        </button>
+        <button class="task-card" type="button" data-workflow="publish">
+          <span>待发布</span>
+          <strong id="task-publish">-</strong>
+          <small id="task-publish-list">-</small>
+        </button>
+      </section>
+
+      <section class="workbench">
+        <aside class="panel discovery-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Discovery</p>
+              <h2>搜索入口</h2>
+            </div>
+          </div>
+
+          <form id="search-form" class="search-builder">
+            <label>
+              <span>关键词</span>
+              <input id="keyword-input" type="text" value="大人女子コーデ" autocomplete="off">
+            </label>
+            <label>
+              <span>合作信号</span>
+              <select id="signal-select">
+                <option value="PR メール">PR + メール</option>
+                <option value="タイアップ ファッション">タイアップ</option>
+                <option value="商品提供 コーデ">商品提供</option>
+                <option value="骨格 着回し">骨格 + 着回し</option>
+              </select>
+            </label>
+            <button class="full-button" type="submit">打开搜索</button>
+          </form>
+
+          <div class="public-search-box">
+            <div class="section-head">
+              <h3>公开搜索接入</h3>
+              <a id="public-search-open-link" href="https://www.google.com/search?q=site%3Ainstagram.com%20fashion%20blogger%20japan" target="_blank" rel="noreferrer">打开搜索</a>
+            </div>
+            <label>
+              <span>搜索关键词</span>
+              <textarea id="public-search-keyword" rows="3">fashion blogger japan
+japanese fashion influencer
+tokyo fashion</textarea>
+            </label>
+            <div class="inline-controls">
+              <label>
+                <span>搜索源</span>
+                <select id="public-search-engine">
+                  <option value="auto">自动</option>
+                  <option value="google_cse">Google CSE</option>
+                  <option value="serpapi">SerpApi</option>
+                </select>
+              </label>
+              <label>
+                <span>数量</span>
+                <input id="public-search-limit" type="number" min="1" max="30" value="10">
+              </label>
+            </div>
+            <button id="public-search-btn" class="full-button full-button--accent" type="button">搜索并预览</button>
+            <small id="public-search-status">未配置 API key 时会生成可手动打开的搜索链接。</small>
+          </div>
+
+          <div class="skill-run-box">
+            <div class="section-head">
+              <h3>Prompt 抓取任务</h3>
+              <button id="skill-refresh-runs-btn" type="button">刷新进度</button>
+            </div>
+            <div class="skill-prompt-brief">
+              <span>目标提示词</span>
+              <strong>发现日本女装/穿搭达人，只导出 CSV，不私信</strong>
+              <small>按下面 5 段配置，生成后可直接复制给 Codex 执行抓取。</small>
+            </div>
+
+            <section class="skill-prompt-section">
+              <div class="skill-step-title">
+                <b>1</b>
+                <span>任务模式</span>
+              </div>
+              <label>
+                <span>从哪里发现达人</span>
+                <select id="skill-source-mode">
+                  <option value="instagram">Instagram 关键词 / hashtag</option>
+                  <option value="hybrid">Google + Instagram 混合发现</option>
+                  <option value="competitor">竞品种子公开线索</option>
+                </select>
+              </label>
+              <div class="skill-rule-note">只处理公开可见信息；这个面板不执行私信发送。</div>
+            </section>
+
+            <section class="skill-prompt-section">
+              <div class="skill-step-title">
+                <b>2</b>
+                <span>达人条件</span>
+              </div>
+              <label>
+                <span>类型 / niche</span>
+                <input id="skill-niche" type="text" value="レディースファッション、40代コーデ、服">
+              </label>
+              <div class="skill-grid">
+                <label>
+                  <span>地区</span>
+                  <input id="skill-market" type="text" value="Japan">
+                </label>
+                <label>
+                  <span>语言</span>
+                  <input id="skill-language" type="text" value="日语">
+                </label>
+                <label>
+                  <span>粉丝下限</span>
+                  <input id="skill-min-followers" type="number" min="0" step="1000" value="10000">
+                </label>
+                <label>
+                  <span>粉丝上限</span>
+                  <input id="skill-max-followers" type="number" min="0" step="1000" value="100000">
+                </label>
+              </div>
+            </section>
+
+            <section class="skill-prompt-section">
+              <div class="skill-step-title">
+                <b>3</b>
+                <span>搜索词</span>
+              </div>
+              <label>
+                <span>种子关键词 / hashtag</span>
+                <textarea id="skill-seeds" rows="7">#40代ファッション
+#40代コーデ
+#大人カジュアル
+#きれいめカジュアル
+#フェミニンコーデ
+#ママコーデ
+#ワンピースコーデ
+#スカートコーデ
+#低身長コーデ
+#体型カバー
+#高見えコーデ
+#プチプラコーデ</textarea>
+              </label>
+              <div class="skill-checks">
+                <label class="inline-check">
+                  <input id="skill-full-angle" type="checkbox" checked>
+                  <span>开启 full-angle 扩展：风格、年龄、体型、季节、单品、合作词</span>
+                </label>
+              </div>
+              <label>
+                <span>每个关键词最多采集</span>
+                <input id="skill-per-term-limit" type="number" min="1" max="200" value="80">
+              </label>
+            </section>
+
+            <section class="skill-prompt-section">
+              <div class="skill-step-title">
+                <b>4</b>
+                <span>排除规则</span>
+              </div>
+              <label>
+                <span>日语 # 每行一个</span>
+                <textarea id="skill-exclusions" rows="7" placeholder="#ショップスタッフ除外&#10;#メンズアカウント除外&#10;#ブランド公式除外"></textarea>
+              </label>
+              <div class="skill-checks">
+                <label class="inline-check">
+                  <input id="skill-strict-filter" type="checkbox" checked>
+                  <span>严格过滤：女装/女性个人穿搭达人优先，不确定只进候选详情</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="skill-prompt-section">
+              <div class="skill-step-title">
+                <b>5</b>
+                <span>输出要求</span>
+              </div>
+              <div class="skill-grid">
+                <label>
+                  <span>先抓候选</span>
+                  <input id="skill-raw-target" type="number" min="1" max="2000" value="200">
+                </label>
+                <label>
+                  <span>保留 top</span>
+                  <input id="skill-top-target" type="number" min="1" max="500" value="50">
+                </label>
+              </div>
+              <div class="skill-rule-note">输出达人池导入 CSV 和候选详情 CSV；raw 为 0 表示只创建了计划，还没有开始浏览器抓取。</div>
+            </section>
+
+            <div class="skill-prompt-output-block">
+              <div class="skill-step-title">
+                <b>→</b>
+                <span>生成后的提示词</span>
+              </div>
+              <textarea id="skill-prompt-output" class="skill-prompt-output" rows="9" readonly placeholder="这里会生成可直接发给 Codex 的 $instagram-dm-outreach 提示词"></textarea>
+              <div class="skill-actions">
+                <button id="skill-generate-prompt-btn" type="button">生成提示词</button>
+                <button id="skill-create-plan-btn" class="primary-inline" type="button">创建抓取计划</button>
+                <button id="skill-copy-prompt-btn" type="button">复制提示词</button>
+              </div>
+              <small id="skill-panel-status">这个面板只生成提示词和 CSV 计划文件；创建后 raw 为 0 属于正常，发给 Codex 执行后才会开始浏览器抓取。</small>
+            </div>
+
+            <div id="skill-run-list" class="skill-run-list"></div>
+          </div>
+
+          <div class="website-box">
+            <div class="section-head">
+              <h3>达人网站识别器</h3>
+            </div>
+            <label>
+              <span>补充关键词</span>
+              <input id="website-keyword" type="text" value="美容 健康 ライフスタイル" autocomplete="off">
+            </label>
+            <label>
+              <span>达人网站 / Instagram 链接</span>
+              <textarea id="website-source" rows="6" placeholder="一行一个链接，例如：https://akiko394196.base.shop 或 https://www.instagram.com/ayako38aksa/reels/"></textarea>
+            </label>
+            <button id="website-preview-btn" class="full-button full-button--accent" type="button">抓取并识别</button>
+            <small id="website-status">会读取公开网页；Instagram 链接只解析账号，不自动登录抓取。</small>
+          </div>
+
+          <div class="collector-box">
+            <div class="section-head">
+              <h3>合规采集器</h3>
+            </div>
+            <label>
+              <span>采集关键词</span>
+              <input id="collector-keyword" type="text" value="大人女子コーデ" autocomplete="off">
+            </label>
+            <label>
+              <span>搜索结果 / URL / HTML</span>
+              <textarea id="collector-source" rows="7" placeholder="粘贴 Google 结果、Creator Marketplace 导出片段、URL 列表或 HTML。只会提取 instagram.com/handle 和 @handle，不会访问 Instagram。"></textarea>
+            </label>
+            <button id="collector-preview-btn" class="full-button full-button--accent" type="button">提取候选</button>
+          </div>
+
+          <div class="link-section">
+            <div class="section-head">
+              <h3>Hashtag</h3>
+              <button id="open-tags-btn" type="button">打开前 4 个</button>
+            </div>
+            <div class="hashtag-autofill">
+              <label>
+                <span>自动输入</span>
+                <textarea id="hashtag-input" rows="3" placeholder="#fashionbloggerjapan #tokyofashion #ootdjapan"></textarea>
+              </label>
+              <div class="hashtag-actions">
+                <button id="hashtag-auto-btn" type="button">自动填入</button>
+                <button id="open-input-tags-btn" type="button">打开输入标签</button>
+                <button id="copy-tags-btn" type="button">复制标签</button>
+              </div>
+              <div id="hashtag-suggestions" class="tag-cloud tag-cloud--compact"></div>
+            </div>
+            <div id="hashtag-list" class="tag-cloud"></div>
+          </div>
+
+          <div class="link-section">
+            <div class="section-head">
+              <h3>Google 线索</h3>
+            </div>
+            <div id="query-list" class="query-list"></div>
+          </div>
+
+          <div class="link-section">
+            <div class="section-head">
+              <h3>合规渠道</h3>
+            </div>
+            <div id="marketplace-list" class="marketplace-list"></div>
+          </div>
+        </aside>
+
+        <section class="panel candidate-panel">
+          <div class="panel-head panel-head--split">
+            <div>
+              <p class="eyebrow">Candidate CRM</p>
+              <h2>达人候选池</h2>
+            </div>
+            <div class="panel-head-actions">
+              <button id="clear-filters-btn" type="button">清空筛选</button>
+              <button id="delete-all-candidates-btn" class="danger-inline" type="button">删除全部</button>
+            </div>
+          </div>
+
+          <div class="filters">
+            <label>
+              <span>搜索</span>
+              <input id="filter-search" type="search" placeholder="@handle / niche / 标签">
+            </label>
+            <label>
+              <span>状态</span>
+              <select id="filter-status"></select>
+            </label>
+            <label>
+              <span>等级</span>
+              <select id="filter-tier">
+                <option value="">全部</option>
+                <option value="S">S</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </label>
+            <label>
+              <span>排序</span>
+              <select id="filter-sort">
+                <option value="score_desc">综合评分最高</option>
+                <option value="updated_desc">最新导入/更新</option>
+                <option value="followers_desc">粉丝最多</option>
+                <option value="followers_asc">粉丝最少</option>
+                <option value="quote_asc">报价最低</option>
+                <option value="quote_desc">报价最高</option>
+                <option value="connection_desc">建联时间最新</option>
+                <option value="shipped_desc">发货时间最新</option>
+                <option value="received_desc">收货时间最新</option>
+                <option value="video_progress_desc">视频进度</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="candidate-list" class="candidate-list" aria-live="polite"></div>
+        </section>
+
+        <aside class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Outreach Draft</p>
+              <h2 id="detail-title">选择一个达人</h2>
+            </div>
+          </div>
+
+          <div id="detail-empty" class="empty-state">
+            <strong>候选详情会显示在这里</strong>
+            <span>选中候选后可查看评分、检查项、DM、邮件和 follow-up 文案。</span>
+          </div>
+
+          <div id="detail-content" class="detail-content" hidden>
+            <div class="creator-summary">
+              <div class="creator-identity">
+                <div class="avatar" id="detail-avatar">SO</div>
+                <div>
+                  <h3 id="detail-name">-</h3>
+                  <a id="detail-url" target="_blank" rel="noreferrer">Instagram</a>
+                </div>
+              </div>
+              <button id="delete-candidate-btn" class="danger-inline" type="button">删除</button>
+            </div>
+
+            <div class="score-grid">
+              <article><span>评分</span><strong id="detail-score">-</strong></article>
+              <article><span>等级</span><strong id="detail-tier">-</strong></article>
+              <article><span>粉丝</span><strong id="detail-followers">-</strong></article>
+              <article><span>互动率</span><strong id="detail-er">-</strong></article>
+            </div>
+
+            <div class="score-breakdown" id="score-breakdown"></div>
+
+            <div class="enrichment-box">
+              <div class="section-head">
+                <h3>资料补全助手</h3>
+                <div class="section-actions">
+                  <button id="instagram-enrich-btn" type="button">Instagram API 补全</button>
+                  <button id="profile-extract-btn" type="button">识别</button>
+                </div>
+              </div>
+              <small id="instagram-enrich-status">读取服务器 .env 配置，不在浏览器保存 token。</small>
+              <textarea id="profile-source" rows="4" placeholder="粘贴 bio、粉丝数、邮箱、头像链接、地区、近期内容"></textarea>
+              <div id="profile-preview" class="profile-preview"></div>
+              <button id="profile-apply-btn" class="full-button" type="button" disabled>应用到当前达人</button>
+            </div>
+
+            <label class="status-editor">
+              <span>状态</span>
+              <select id="detail-status"></select>
+            </label>
+
+            <div class="followup-editor">
+              <label>
+                <span>下次跟进</span>
+                <input id="followup-date" type="date">
+              </label>
+              <button id="save-followup-btn" type="button">保存</button>
+            </div>
+
+            <div class="contact-log-box">
+              <div class="section-head">
+                <h3>联系历史</h3>
+                <button id="quick-log-btn" type="button">记录建联</button>
+              </div>
+              <textarea id="contact-note" rows="2" placeholder="回复、报价、寄样、备注"></textarea>
+              <div id="contact-history" class="contact-history"></div>
+            </div>
+
+            <div class="reply-assistant-box">
+              <div class="section-head">
+                <h3>回复处理助手</h3>
+                <div class="section-actions">
+                  <button id="reply-analyze-btn" type="button">识别回复</button>
+                  <button id="reply-model-btn" type="button">模型生成回复</button>
+                </div>
+              </div>
+              <textarea id="reply-source" rows="4" placeholder="粘贴达人回复，例如报价、想看商品图、问条件、拒绝合作"></textarea>
+              <div id="reply-insights" class="copy-insights"></div>
+              <pre id="reply-draft" class="reply-draft"></pre>
+              <div class="optimizer-actions">
+                <button id="reply-copy-btn" type="button" disabled>复制回复</button>
+                <button id="reply-log-btn" class="primary-inline" type="button" disabled>记录并更新状态</button>
+                <button id="reply-clear-btn" type="button">清空</button>
+              </div>
+            </div>
+
+            <div class="checklist" id="manual-checklist"></div>
+
+            <div class="draft-tabs" role="tablist" aria-label="文案类型">
+              <button class="is-active" type="button" data-draft="dm">DM</button>
+              <button type="button" data-draft="email">Email</button>
+              <button type="button" data-draft="followup">Follow-up</button>
+            </div>
+            <div class="template-library">
+              <div class="section-head">
+                <h3>建联文案优化器</h3>
+                <button id="template-copy-btn" type="button">复制当前</button>
+              </div>
+              <div class="optimizer-grid">
+                <label>
+                  <span>合作方式</span>
+                  <select id="template-select">
+                    <option value="">使用默认文案</option>
+                    <option value="recommended">自动推荐</option>
+                    <option value="product_seed">商品提供</option>
+                    <option value="paid_post">付费投稿</option>
+                    <option value="reels">Reels 合作</option>
+                    <option value="affiliate">折扣码 / 佣金</option>
+                    <option value="long_term">长期合作</option>
+                    <option value="followup_second">二次跟进</option>
+                    <option value="negotiate">报价议价回复</option>
+                    <option value="fixed_paid_trial">固定模板 1：有償ご試着</option>
+                    <option value="fixed_summer_collab">固定模板 2：夏新作コラボ</option>
+                    <option value="fixed_monitor_offer">固定模板 3：商品モニター</option>
+                    <option value="fixed_partner_recruit">固定模板 4：発信パートナー</option>
+                  </select>
+                </label>
+                <label>
+                  <span>语气</span>
+                  <select id="copy-tone-select">
+                    <option value="warm">亲和自然</option>
+                    <option value="polite">正式礼貌</option>
+                    <option value="concise">短句直接</option>
+                  </select>
+                </label>
+                <label>
+                  <span>长度</span>
+                  <select id="copy-length-select">
+                    <option value="standard">标准</option>
+                    <option value="short">短 DM</option>
+                    <option value="detailed">详细</option>
+                  </select>
+                </label>
+              </div>
+              <div class="model-gateway">
+                <div class="section-head">
+                  <h3>模型接口</h3>
+                  <small id="copy-model-status">默认使用本地规则</small>
+                </div>
+                <div class="model-grid">
+                  <label>
+                    <span>生成方式</span>
+                    <select id="copy-model-provider">
+                      <option value="local">本地规则</option>
+                      <option value="api">模型 API</option>
+                      <option value="cpa">CPA 中转</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Base URL</span>
+                    <input id="copy-model-base-url" type="url" placeholder="https://api.example.com/v1">
+                  </label>
+                  <label>
+                    <span>Model</span>
+                    <input id="copy-model-name" type="text" placeholder="gpt-4o-mini / deepseek-chat">
+                  </label>
+                </div>
+                <label>
+                  <span>鉴权方式</span>
+                  <select id="copy-model-auth-mode">
+                    <option value="bearer">Bearer Token</option>
+                    <option value="x-api-key">X-API-Key</option>
+                    <option value="authorization">Authorization 原样</option>
+                    <option value="none">不传 Key</option>
+                  </select>
+                </label>
+                <label>
+                  <span>API Key</span>
+                  <input id="copy-model-api-key" type="password" placeholder="sk-...">
+                </label>
+                <label class="model-save-key">
+                  <input id="copy-model-save-key" type="checkbox">
+                  <span>保存 Key</span>
+                </label>
+                <div class="model-actions">
+                  <button id="copy-model-save-btn" type="button">保存配置</button>
+                  <button id="copy-model-test-btn" type="button">测试接口</button>
+                  <button id="copy-model-clear-btn" type="button">清空</button>
+                </div>
+              </div>
+              <label>
+                <span>主推产品</span>
+                <select id="product-select">
+                  <option value="auto">自动匹配</option>
+                  <option value="onepiece">通勤连衣裙</option>
+                  <option value="outer">轻外套 / 西装外套</option>
+                  <option value="office_set">通勤套装</option>
+                  <option value="petite">小个子友好款</option>
+                  <option value="body_cover">体型遮盖款</option>
+                  <option value="pants_skirt">高腰裤 / 半裙</option>
+                  <option value="knit">针织 / 日常上衣</option>
+                </select>
+              </label>
+              <div id="product-points" class="product-points"></div>
+              <textarea id="copy-hook-input" rows="2" placeholder="可选：填写你想强调的个性化理由，比如“最近的通勤穿搭很适合我们的连衣裙”"></textarea>
+              <div id="copy-insights" class="copy-insights"></div>
+              <div class="optimizer-actions">
+                <button id="copy-recommend-btn" type="button">推荐设置</button>
+                <button id="copy-optimize-btn" class="primary-inline" type="button">生成优化文案</button>
+                <button id="copy-model-btn" class="primary-inline" type="button">模型生成</button>
+                <button id="copy-default-btn" type="button">恢复默认</button>
+              </div>
+            </div>
+            <div class="draft-box">
+              <div id="email-subject-row" class="subject-row" hidden>
+                <span>Subject</span>
+                <strong id="email-subject">-</strong>
+              </div>
+              <pre id="draft-text"></pre>
+              <button id="copy-draft-btn" class="full-button full-button--dark" type="button">复制文案</button>
+            </div>
+
+            <div class="partnership-box">
+              <div class="section-head">
+                <h3>合作结果追踪</h3>
+                <button id="partnership-save-btn" type="button">保存</button>
+              </div>
+              <div class="partnership-grid">
+                <div class="partnership-group-title">建联信息</div>
+                <label>
+                  <span>发送邀约时间</span>
+                  <input id="partnership-invitation-sent-at" type="date">
+                </label>
+                <label>
+                  <span>建联时间</span>
+                  <input id="partnership-connection-at" type="date">
+                </label>
+                <label>
+                  <span>博主 ID</span>
+                  <input id="partnership-blogger-id" type="text" placeholder="平台ID / 内部ID">
+                </label>
+                <label>
+                  <span>博主类型</span>
+                  <input id="partnership-creator-type" type="text" placeholder="穿搭 / 美妆 / 生活方式">
+                </label>
+                <label>
+                  <span>粉丝数</span>
+                  <input id="partnership-followers" type="number" min="0" step="1" inputmode="numeric">
+                </label>
+                <label>
+                  <span>主页链接</span>
+                  <input id="partnership-profile-url" type="url" placeholder="https://www.instagram.com/...">
+                </label>
+
+                <div class="partnership-group-title">合作信息</div>
+                <label>
+                  <span>合作阶段</span>
+                  <select id="partnership-stage">
+                    <option value="none">未开始</option>
+                    <option value="pricing">报价确认</option>
+                    <option value="sample_pending">待寄样</option>
+                    <option value="sample_sent">已寄样</option>
+                    <option value="content_scheduled">待发帖</option>
+                    <option value="posted">已发帖</option>
+                    <option value="measured">已复盘</option>
+                  </select>
+                </label>
+                <label>
+                  <span>达人报价 JPY</span>
+                  <input id="partnership-quote" type="number" min="0" step="1000" inputmode="numeric">
+                </label>
+                <label>
+                  <span>合作产品</span>
+                  <input id="partnership-collab-product" type="text" placeholder="连衣裙 / 套装 / 外套">
+                </label>
+
+                <div class="partnership-group-title">履约发货</div>
+                <label>
+                  <span>样品状态</span>
+                  <select id="partnership-sample-status">
+                    <option value="none">未安排</option>
+                    <option value="requested">已索要信息</option>
+                    <option value="prepared">备货中</option>
+                    <option value="sent">已发货</option>
+                    <option value="delivered">已签收</option>
+                  </select>
+                </label>
+                <label>
+                  <span>样品/物流成本 JPY</span>
+                  <input id="partnership-sample-cost" type="number" min="0" step="500" inputmode="numeric">
+                </label>
+                <div class="partnership-group-title">收货信息</div>
+                <label>
+                  <span>姓名</span>
+                  <input id="partnership-recipient-name" type="text" placeholder="收件人姓名">
+                </label>
+                <label>
+                  <span>邮编</span>
+                  <input id="partnership-postal-code" type="text" placeholder="150-0001">
+                </label>
+                <label class="wide">
+                  <span>详细地址</span>
+                  <input id="partnership-shipping-address" type="text" placeholder="达人提供的详细收货地址">
+                </label>
+                <label>
+                  <span>手机号</span>
+                  <input id="partnership-phone-number" type="tel" placeholder="+81 90-0000-0000">
+                </label>
+                <label>
+                  <span>订单编号</span>
+                  <input id="partnership-order-number" type="text" placeholder="Shopify / ERP 订单号">
+                </label>
+                <label>
+                  <span>物流单号</span>
+                  <input id="partnership-tracking" type="text" placeholder="tracking number">
+                </label>
+                <label>
+                  <span>发货时间</span>
+                  <input id="partnership-shipped-at" type="date">
+                </label>
+                <label>
+                  <span>收货时间</span>
+                  <input id="partnership-received-at" type="date">
+                </label>
+
+                <div class="partnership-group-title">内容进度</div>
+                <label>
+                  <span>视频进度</span>
+                  <select id="partnership-video-progress">
+                    <option value="not_started">未开始</option>
+                    <option value="product_confirming">选品中</option>
+                    <option value="sample_sent">已寄样</option>
+                    <option value="filming">拍摄中</option>
+                    <option value="draft_review">初稿待审</option>
+                    <option value="revision">修改中</option>
+                    <option value="posted">已发布</option>
+                    <option value="measured">已复盘</option>
+                  </select>
+                </label>
+                <label>
+                  <span>预计/实际发帖日</span>
+                  <input id="partnership-post-date" type="date">
+                </label>
+                <label>
+                  <span>帖子链接</span>
+                  <input id="partnership-post-url" type="url" placeholder="https://www.instagram.com/p/...">
+                </label>
+                <label>
+                  <span>优惠码</span>
+                  <input id="partnership-coupon" type="text" placeholder="MIKA10">
+                </label>
+                <label>
+                  <span>订单数</span>
+                  <input id="partnership-orders" type="number" min="0" step="1" inputmode="numeric">
+                </label>
+                <label>
+                  <span>收入 JPY</span>
+                  <input id="partnership-revenue" type="number" min="0" step="1000" inputmode="numeric">
+                </label>
+              </div>
+              <div id="partnership-summary" class="partnership-summary"></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel add-panel">
+        <div class="panel-head panel-head--split">
+          <div>
+            <p class="eyebrow">Manual Add</p>
+            <h2>新增候选</h2>
+          </div>
+          <span id="source-caption">-</span>
+        </div>
+
+        <form id="candidate-form" class="candidate-form">
+          <input name="source" type="hidden" value="manual">
+          <div class="candidate-form-section candidate-form-section--full">
+            <div class="form-section-title">
+              <h3>基础信息</h3>
+              <label class="inline-check">
+                <input name="pinned" type="checkbox" value="true">
+                <span>保存后置顶</span>
+              </label>
+            </div>
+            <label><span>账号</span><input name="handle" placeholder="creator_handle" required></label>
+            <label><span>昵称</span><input name="name" placeholder="Mika"></label>
+            <label><span>博主 ID</span><input name="bloggerId" placeholder="BID-001"></label>
+            <label><span>博主类型</span><input name="creatorType" placeholder="穿搭 / 美容 / 生活方式"></label>
+            <label><span>赛道</span><input name="niche" placeholder="大人カジュアル"></label>
+            <label><span>地区</span><input name="location" placeholder="Tokyo"></label>
+            <label><span>粉丝数</span><input name="followers" inputmode="numeric" placeholder="12800"></label>
+            <label><span>互动率</span><input name="engagementRate" inputmode="decimal" placeholder="4.2%"></label>
+            <label>
+              <span>状态</span>
+              <select name="status">
+                <option value="review">待审核</option>
+                <option value="new">新候选</option>
+                <option value="ready">可建联</option>
+                <option value="contacted">已建联</option>
+                <option value="replied">已回复</option>
+                <option value="negotiating">报价中</option>
+                <option value="approved">可合作</option>
+                <option value="rejected">不匹配</option>
+              </select>
+            </label>
+            <label>
+              <span>渠道</span>
+              <select name="contactMethod">
+                <option value="dm">DM</option>
+                <option value="email">Email</option>
+                <option value="creator_marketplace">Creator Marketplace</option>
+                <option value="unknown">未知</option>
+              </select>
+            </label>
+            <label><span>Email</span><input name="email" type="email" placeholder="name@example.com"></label>
+            <label><span>主页链接</span><input name="instagramUrl" type="url" placeholder="https://www.instagram.com/..."></label>
+            <label class="wide"><span>头像链接</span><input name="avatarUrl" type="url" placeholder="https://example.com/avatar.jpg"></label>
+          </div>
+
+          <div class="candidate-form-section">
+            <div class="form-section-title">
+              <h3>建联与合作</h3>
+            </div>
+            <label><span>发送邀约时间</span><input name="invitationSentAt" type="date"></label>
+            <label><span>建联时间</span><input name="connectionAt" type="date"></label>
+            <label><span>下次跟进</span><input name="followUpDate" type="date"></label>
+            <label>
+              <span>合作阶段</span>
+              <select name="partnershipStage">
+                <option value="none">未开始</option>
+                <option value="pricing">报价确认</option>
+                <option value="sample_pending">待寄样</option>
+                <option value="sample_sent">已寄样</option>
+                <option value="content_scheduled">待发帖</option>
+                <option value="posted">已发帖</option>
+                <option value="measured">已复盘</option>
+              </select>
+            </label>
+            <label><span>报价 JPY</span><input name="quoteJpy" type="number" min="0" step="1000" inputmode="numeric" placeholder="30000"></label>
+            <label><span>合作产品</span><input name="collabProduct" placeholder="连衣裙 / 外套"></label>
+            <label>
+              <span>样品状态</span>
+              <select name="sampleStatus">
+                <option value="none">未安排</option>
+                <option value="requested">已索要信息</option>
+                <option value="prepared">备货中</option>
+                <option value="sent">已发货</option>
+                <option value="delivered">已签收</option>
+              </select>
+            </label>
+            <label><span>样品成本 JPY</span><input name="sampleCostJpy" type="number" min="0" step="500" inputmode="numeric"></label>
+          </div>
+
+          <div class="candidate-form-section">
+            <div class="form-section-title">
+              <h3>收货与进度</h3>
+            </div>
+            <label><span>收货姓名</span><input name="recipientName" placeholder="山田花子"></label>
+            <label><span>邮编</span><input name="postalCode" placeholder="150-0001"></label>
+            <label><span>手机号</span><input name="phoneNumber" placeholder="+81 90-..."></label>
+            <label><span>订单编号</span><input name="orderNumber" placeholder="ORD-001"></label>
+            <label class="wide"><span>详细地址</span><input name="shippingAddress" placeholder="Tokyo Shibuya..."></label>
+            <label><span>物流单号</span><input name="shippingTracking" placeholder="tracking no."></label>
+            <label><span>发货时间</span><input name="shippedAt" type="date"></label>
+            <label><span>收货时间</span><input name="receivedAt" type="date"></label>
+            <label>
+              <span>视频进度</span>
+              <select name="videoProgress">
+                <option value="not_started">未开始</option>
+                <option value="product_confirming">选品中</option>
+                <option value="sample_sent">已寄样</option>
+                <option value="filming">拍摄中</option>
+                <option value="draft_review">初稿待审</option>
+                <option value="revision">修改中</option>
+                <option value="posted">已发布</option>
+                <option value="measured">已复盘</option>
+              </select>
+            </label>
+            <label><span>优惠码</span><input name="couponCode" placeholder="MIKA10"></label>
+          </div>
+
+          <div class="candidate-form-section candidate-form-section--full">
+            <div class="form-section-title">
+              <h3>备注</h3>
+            </div>
+            <label class="wide"><span>标签</span><input name="tags" placeholder="通勤、低身長、着回し"></label>
+            <label class="wide"><span>备注</span><textarea name="notes" rows="3" placeholder="最近内容、适合单品、人工检查结论"></textarea></label>
+          </div>
+
+          <button class="full-button full-button--accent" type="submit">保存候选</button>
+        </form>
+      </section>
+    </main>
+
+    <button id="scroll-top-btn" class="scroll-top-btn" type="button" aria-label="返回顶部" title="返回顶部">↑</button>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

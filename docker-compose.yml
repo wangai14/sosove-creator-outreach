@@ -1,0 +1,17 @@
+services:
+  creator-outreach:
+    build: .
+    container_name: sosove-creator-outreach
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PANEL_PORT:-8796}:8796"
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8796/api/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
